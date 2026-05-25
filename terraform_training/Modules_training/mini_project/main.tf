@@ -15,11 +15,10 @@ terraform {
   }
 }
 
-resource "aws_instance" "web" {
-  ami           = var.ami
+module "ec2" {
+  source = "../EC2 Module"
+  ami = var.ami
   instance_type = var.instance_type
-
-  tags = {
-    Name = "terraform-training"
-  }
+  region = var.region
+  name = "terraform-training"
 }
