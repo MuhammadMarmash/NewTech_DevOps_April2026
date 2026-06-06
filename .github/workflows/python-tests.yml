@@ -1,7 +1,7 @@
 # This workflow runs Python tests automatically
 # It triggers when you push code to GitHub
 
-name: Python Tests - Lab 1
+name: Python Tests - Lab 1 and 2
 
 # When to run this workflow
 on:
