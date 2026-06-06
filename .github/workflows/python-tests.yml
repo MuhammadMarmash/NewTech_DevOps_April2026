@@ -49,7 +49,7 @@ jobs:
 
       - name: test coverage
         run: |
-          pytest --cov=${{ matrix.lab.path }} --cov-report=xml
+          pytest --cov=. --cov-report=term-missing
         working-directory: ${{ matrix.lab.path }}
 
       - name: linting
