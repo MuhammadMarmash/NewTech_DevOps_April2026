@@ -23,7 +23,13 @@ variable "protocol" {
 variable "cidr_blocks" {
   type        = list(string)
   description = "The cidr blocks of the security group rule"
-  #default     = []"
+  default     = null
+}
+
+variable "source_security_group_id" {
+  type        = string
+  description = "The source security group id to allow traffic from"
+  default     = null
 }
 variable "security_group_id" {
   type        = string

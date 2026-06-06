@@ -12,6 +12,12 @@ terraform {
       version = "~> 2.0"
     }
   }
+
+  backend "s3" {
+    bucket = "muhammad-terraform-training-project-state"
+    key    = "terraform.tfstate"
+    region = "eu-north-1"
+  }
 }
 
 provider "aws" {
@@ -51,20 +57,19 @@ module "db_sg_rules" {
   source = "./security_group_rule module"
   for_each = {
     "mysql_in" = {
-      type        = "ingress"
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-      cidr_blocks = [module.security_group.web_dmz_sg_cidr_blocks[0]]
+      type      = "ingress"
+      from_port = 3306
+      to_port   = 3306
+      protocol  = "tcp"
     }
   }
-  type = each.value.type
-  from_port = each.value.from_port
-  to_port = each.value.to_port
-  protocol = each.value.protocol
-  cidr_blocks = each.value.cidr_blocks
-  security_group_id = module.security_group.db_sg_id
-  description = each.key
+  type                     = each.value.type
+  from_port                = each.value.from_port
+  to_port                  = each.value.to_port
+  protocol                 = each.value.protocol
+  source_security_group_id = module.security_group.web_dmz_sg_id
+  security_group_id        = module.security_group.db_sg_id
+  description              = each.key
 }
 
 
@@ -132,6 +137,9 @@ module "s3" {
   source = "./s3 module"
 }
 
+module "muhammad-terraform-training-project-state" {
+  source = "./s3 module"
+}
 
 # -----------------------------
 # CDN: CloudFront
@@ -140,3 +148,5 @@ module "cloudfront" {
   source = "./cloudfront module"
   origin_domain_name = module.s3.media_assets_domain_name
 }
+
+
