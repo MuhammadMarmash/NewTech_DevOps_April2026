@@ -7,8 +7,12 @@ name: Python Tests - Lab 1 and 2
 on:
   push:
     branches: [main]
+    paths:
+      - "gh_actions/**"
   pull_request:
     branches: [main]
+    paths:
+      - "gh_actions/**"
 
 jobs:
   # Job 1: Run our tests
