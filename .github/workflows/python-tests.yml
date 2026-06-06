@@ -41,13 +41,13 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         working-directory: ${{ matrix.lab.path }}
 
-      # Step 4: Run the tests
-      - name: Run lab tests
-        run: |
-          python -m unittest ${{ matrix.lab.file }} -v
-        working-directory: ${{ matrix.lab.path }}
+      # # Step 4: Run the tests
+      # - name: Run lab tests
+      #   run: |
+      #     python -m unittest ${{ matrix.lab.file }} -v
+      #   working-directory: ${{ matrix.lab.path }}
 
-      - name: test coverage
+      - name: run tests with coverage
         run: |
           pytest --cov=. --cov-report=term-missing
         working-directory: ${{ matrix.lab.path }}
