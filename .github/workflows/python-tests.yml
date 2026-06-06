@@ -17,7 +17,12 @@ jobs:
     strategy:
       matrix:
         python-version: [3.11, 3.10, 3.9] # Test on Python 3.11
-        directory: ["./GH_Actions/lab1", "./GH_Actions/lab2"] # Specify the directory for tests
+        directory: [{}]
+        include:
+          - path: "./GH_Actions/lab1"
+            file: "test_calculator.py"
+          - path: "./GH_Actions/lab2"
+            file: "test_string_utils.py"
 
     steps:
       # Step 1: Get the code from the repository
@@ -36,15 +41,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.directory.path }}
 
       # Step 4: Run the tests
       - name: Run lab1 tests
         run: |
-          python -m unittest test_calculator.py -v
-        working-directory: "./GH_Actions/lab1"
-
-      - name: Run lab2 tests
-        run: |
-          python -m unittest test_string_utils.py -v
-        working-directory: "./GH_Actions/lab2"
+          python -m unittest ${{ matrix.directory.file }} -v
+        working-directory: ${{ matrix.directory.path }}
