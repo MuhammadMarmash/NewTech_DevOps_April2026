@@ -16,13 +16,10 @@ jobs:
     runs-on: ubuntu-latest # Use Ubuntu Linux
     strategy:
       matrix:
-        python-version: [3.11, 3.10, 3.9] # Test on Python 3.11
-        directory: [{}]
-        include:
-          - path: "./GH_Actions/lab1"
-            file: "test_calculator.py"
-          - path: "./GH_Actions/lab2"
-            file: "test_string_utils.py"
+        python-version: ["3.11", "3.10", "3.9"] # Test on Python 3.11
+        lab:
+          - { path: "./GH_Actions/lab1", file: "test_calculator.py" }
+          - { path: "./GH_Actions/lab2", file: "test_string_utils.py" }
 
     steps:
       # Step 1: Get the code from the repository
@@ -41,10 +38,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        working-directory: ${{ matrix.directory.path }}
+        working-directory: ${{ matrix.lab.path }}
 
       # Step 4: Run the tests
       - name: Run lab1 tests
         run: |
-          python -m unittest ${{ matrix.directory.file }} -v
-        working-directory: ${{ matrix.directory.path }}
+          python -m unittest ${{ matrix.lab.file }} -v
+        working-directory: ${{ matrix.lab.path }}
