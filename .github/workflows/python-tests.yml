@@ -31,17 +31,28 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-
-      # Step 3: Install any dependencies
-      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov ruff
+
+      # Step 3: Install any dependencies
+      - name: Install requirements if they exist
+        run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         working-directory: ${{ matrix.lab.path }}
 
       # Step 4: Run the tests
-      - name: Run lab1 tests
+      - name: Run lab tests
         run: |
           python -m unittest ${{ matrix.lab.file }} -v
+        working-directory: ${{ matrix.lab.path }}
+
+      - name: test coverage
+        run: |
+          pytest --cov=${{ matrix.lab.path }} --cov-report=xml
+        working-directory: ${{ matrix.lab.path }}
+
+      - name: linting
+        run: |
+          ruff check --fix .
         working-directory: ${{ matrix.lab.path }}
