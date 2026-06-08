@@ -4,6 +4,8 @@ from transformer import calculate_age_group
 from validator import validate_record
 
 
+# for the sake of workflows dispatch
+
 def count_by_age_group(records: list) -> dict:
     """Count records by age group.
 
