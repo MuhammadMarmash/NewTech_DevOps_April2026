@@ -3,8 +3,8 @@ name: lab3 tests - Parallel Mine
 on:
   push:
     branches: [main]
-    # paths:
-    #   - "GH_Actions/lab3/**"
+    paths:
+      - "GH_Actions/lab3/**"
 
 jobs:
   test-validator:
