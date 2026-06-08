@@ -1,158 +1,390 @@
 # Lab 2 Solution Guide
 
-This document provides the complete solution to Lab 2, including all bonus challenges.
+This guide presents **two complete workflow solutions** for Lab 2:
 
-## 📁 Solution Files
+| | Solution | When Lab 1 tests run | When Lab 2 tests run |
+|---|---|---|---|
+| **1** | Sequential | First | After Lab 1 finishes |
+| **2** | Parallel | At the same time as Lab 2 | At the same time as Lab 1 |
 
-The complete solution workflow is provided in: `GH_Actions/solutions/lab2-solution.yml`
+The full solution files are in `GH_Actions/solutions/`:
+- `lab2-solution.yml` — the parallel solution (bonus features included)
 
-Copy it to `.github/workflows/lab2-solution.yml` in your repository to activate it.
+---
 
-## 🎯 What the Solution Includes
+## Solution 1 — Sequential Jobs
 
-### Core Requirements ✅
-- ✅ Triggers on push to main branch
-- ✅ Runs on Ubuntu
-- ✅ Uses Python (multiple versions)
-- ✅ Installs dependencies
-- ✅ Runs the tests
+### How it works
 
-### Bonus Challenges ✅
-1. ✅ **Multiple Python versions** (3.9, 3.10, 3.11) using matrix strategy
-2. ✅ **Code coverage reporting** using pytest-cov
-3. ✅ **Push and pull requests** - workflow triggers on both
-4. ✅ **Linting step** - uses flake8 and black
-5. ✅ **Combined workflow** - tests both lab1 and lab2 in separate jobs
-
-## 🔍 Solution Breakdown
-
-### Job Structure
-
-The solution uses **4 jobs** that run in sequence:
+Each job waits for the previous one to finish before starting. The `needs:` keyword creates a chain:
 
 ```
-lint (runs first)
-  ↓
-test-lab1 (runs after lint) + test-lab2 (runs after lint)
-  ↓
-summary (runs after both tests complete)
+lint
+ ↓
+test-lab1
+ ↓
+test-lab2
+ ↓
+summary
 ```
 
-### 1. Lint Job
+The total runtime equals the **sum** of all job runtimes.
 
-```yaml
-lint:
-  - Runs code quality checks
-  - Uses flake8 for Python linting
-  - Uses black for code formatting checks
-  - Continues even if linting issues found (continue-on-error: true)
-```
-
-**Why?** Catch code quality issues before running tests.
-
-### 2. Test Lab 1 Job
-
-```yaml
-test-lab1:
-  - Uses matrix strategy for Python 3.9, 3.10, 3.11
-  - Runs pytest with coverage
-  - Uploads coverage report (only for Python 3.11)
-  - Creates 3 parallel test runs (one per Python version)
-```
-
-**Why matrix?** Ensures code works across multiple Python versions.
-
-### 3. Test Lab 2 Job
+### The key line
 
 ```yaml
 test-lab2:
-  - Same structure as test-lab1
-  - Tests string_utils.py
-  - Runs in parallel with test-lab1 (both need lint to complete)
-  - Generates coverage reports
+  needs: test-lab1   # ← waits for test-lab1 to finish before starting
 ```
 
-**Why separate jobs?** Lab1 and Lab2 are independent - they can run in parallel!
-
-### 4. Summary Job
+### Complete workflow
 
 ```yaml
-summary:
-  - Runs after all tests complete
-  - Shows status of each test job
-  - Uses `if: always()` to run even if tests fail
-```
-
-**Why?** Provides a clear summary of all test results.
-
-## 🚀 Alternative Solutions
-
-### Option 1: Simple Single Job (Minimum Requirements)
-
-If you just wanted to meet the basic requirements:
-
-```yaml
-name: Lab 2 Simple Tests
+name: Lab 2 - Sequential Solution
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test-lab2:
+
+  # ── STEP 1 ──────────────────────────────────────────────────────────────
+  lint:
+    name: Lint Code
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      working-directory: './GH_Actions/lab2'
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-    
-    - name: Run tests
-      working-directory: './GH_Actions/lab2'
-      run: python -m unittest test_string_utils.py -v
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Lint Lab 1
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab1'
+        continue-on-error: true
+
+      - name: Lint Lab 2
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab2'
+        continue-on-error: true
+
+  # ── STEP 2 ──────────────────────────────────────────────────────────────
+  test-lab1:
+    name: Test Lab 1 — Calculator
+    runs-on: ubuntu-latest
+    needs: lint          # waits for lint to succeed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab1'
+
+      - name: Run Lab 1 tests
+        run: pytest test_calculator.py -v --cov=calculator --cov-report=term-missing
+        working-directory: './GH_Actions/lab1'
+
+  # ── STEP 3 ──────────────────────────────────────────────────────────────
+  # NOTE: needs: test-lab1 means this job CANNOT start until Lab 1 tests
+  # have fully completed. They never run at the same time.
+  test-lab2:
+    name: Test Lab 2 — String Utils
+    runs-on: ubuntu-latest
+    needs: test-lab1     # waits for test-lab1 to finish (SEQUENTIAL)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab2'
+
+      - name: Run Lab 2 tests
+        run: pytest test_string_utils.py -v --cov=string_utils --cov-report=term-missing
+        working-directory: './GH_Actions/lab2'
+
+  # ── STEP 4 ──────────────────────────────────────────────────────────────
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    # List all jobs so their results are available via needs.<job>.result
+    needs: [lint, test-lab1, test-lab2]
+    if: always()         # run even if a previous job failed
+
+    steps:
+      - name: Print results
+        run: |
+          echo "=================================="
+          echo "Sequential Workflow Results"
+          echo "=================================="
+          echo "Lint   : ${{ needs.lint.result }}"
+          echo "Lab 1  : ${{ needs.test-lab1.result }}"
+          echo "Lab 2  : ${{ needs.test-lab2.result }}"
+          echo "=================================="
 ```
 
-### Option 2: Modify Existing python-tests.yml
+### Timeline
 
-You could add lab2 testing to the existing workflow:
+```
+Time →  0s          30s         60s         90s
+        ┌──────────┐
+lint    │  ~10s    │
+        └──────────┘
+                   ┌──────────┐
+test-lab1          │  ~30s    │
+                   └──────────┘
+                               ┌──────────┐
+test-lab2                      │  ~30s    │
+                               └──────────┘
+                                           ┌──┐
+summary                                    │  │
+                                           └──┘
+Total: ~70s
+```
+
+---
+
+## Solution 2 — Parallel Jobs
+
+### How it works
+
+Both test jobs declare `needs: lint` (not `needs: test-lab1`). Because they share the same dependency, GitHub starts them on **separate runners at the same time** as soon as `lint` completes.
+
+```
+lint
+ ↓         ↓
+test-lab1  test-lab2   ← run simultaneously on two separate runners
+     ↓         ↓
+      summary (fan-in)
+```
+
+The total runtime equals the runtime of `lint` + the **slower** of the two test jobs — not the sum.
+
+### The key difference from Solution 1
 
 ```yaml
-# Add this job to .github/workflows/python-tests.yml
-  test-lab2:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-      working-directory: './GH_Actions/lab2'
-    
-    - name: Run tests
-      run: python -m unittest test_string_utils.py -v
-      working-directory: './GH_Actions/lab2'
+# Solution 1 — sequential
+test-lab2:
+  needs: test-lab1     # waits for Lab 1 tests
+
+# Solution 2 — parallel
+test-lab2:
+  needs: lint          # only waits for lint, starts alongside test-lab1
 ```
+
+### Complete workflow
+
+```yaml
+name: Lab 2 - Parallel Solution
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ── STAGE 1 ─────────────────────────────────────────────────────────────
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Lint Lab 1
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab1'
+        continue-on-error: true
+
+      - name: Lint Lab 2
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab2'
+        continue-on-error: true
+
+  # ── STAGE 2 (both jobs start simultaneously) ─────────────────────────────
+  test-lab1:
+    name: Test Lab 1 — Calculator
+    runs-on: ubuntu-latest
+    needs: lint          # waits only for lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab1'
+
+      - name: Run Lab 1 tests
+        run: pytest test_calculator.py -v --cov=calculator --cov-report=term-missing
+        working-directory: './GH_Actions/lab1'
+
+      - name: Upload Lab 1 coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab1-coverage
+          path: ./GH_Actions/lab1/coverage.xml
+
+  # NOTE: needs: lint — NOT needs: test-lab1
+  # This is the only change from Solution 1. Both test jobs now share
+  # the same upstream dependency (lint), so GitHub runs them in parallel.
+  test-lab2:
+    name: Test Lab 2 — String Utils
+    runs-on: ubuntu-latest
+    needs: lint          # waits only for lint → runs alongside test-lab1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab2'
+
+      - name: Run Lab 2 tests
+        run: pytest test_string_utils.py -v --cov=string_utils --cov-report=term-missing
+        working-directory: './GH_Actions/lab2'
+
+      - name: Upload Lab 2 coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab2-coverage
+          path: ./GH_Actions/lab2/coverage.xml
+
+  # ── STAGE 3 (fan-in — waits for BOTH parallel jobs) ─────────────────────
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-lab1, test-lab2]   # waits for both to finish
+    if: always()
+
+    steps:
+      - name: Print results
+        run: |
+          echo "=================================="
+          echo "Parallel Workflow Results"
+          echo "=================================="
+          echo "Lab 1  : ${{ needs.test-lab1.result }}"
+          echo "Lab 2  : ${{ needs.test-lab2.result }}"
+          echo "=================================="
+```
+
+### Timeline
+
+```
+Time →  0s          30s         60s
+        ┌──────────┐
+lint    │  ~10s    │
+        └──────────┘
+                   ┌──────────┐
+test-lab1          │  ~30s    │    ← both start at the same moment
+test-lab2          │  ~30s    │    ← running on separate runners
+                   └──────────┘
+                               ┌──┐
+summary                        │  │
+                               └──┘
+Total: ~40s  (compared to ~70s sequential — 43% faster)
+```
+
+---
+
+## Side-by-Side Comparison
+
+| | Sequential | Parallel |
+|---|---|---|
+| `test-lab2` depends on | `test-lab1` | `lint` |
+| Jobs run at the same time | No | Yes (test-lab1 + test-lab2) |
+| Total time | Sum of all job times | Lint + slowest test job |
+| Runner cost | Same (jobs still run) | Same (same total compute) |
+| When to use sequential | Job B needs output from Job A | Jobs are independent |
+| Fan-in job (`summary`) `needs:` | `[lint, test-lab1, test-lab2]` | `[test-lab1, test-lab2]` |
+
+---
 
 ## 🎓 Key Concepts Explained
 
-### 1. Matrix Strategy
+### 1. `needs:` controls order, not just dependencies
+
+`needs:` is the only mechanism for sequencing jobs. Without it, all jobs start at the same time. With it, a job waits until every job in its `needs:` list reaches a terminal state.
+
+### 2. Fan-in pattern
+
+When the `summary` job lists multiple jobs in `needs: [test-lab1, test-lab2]`, it waits for **all** of them. This is called a fan-in — multiple parallel branches converging into one job.
+
+### 3. `if: always()`
+
+By default, if a `needs` dependency fails, downstream jobs are **skipped** — not failed. `if: always()` overrides this so the summary job runs regardless of upstream outcomes.
+
+```yaml
+summary:
+  needs: [test-lab1, test-lab2]
+  if: always()   # run even if test-lab1 or test-lab2 failed
+```
+
+### 4. Reading job results
+
+Inside a downstream job, you can read any listed dependency's result:
+
+```yaml
+echo "Lab 1: ${{ needs.test-lab1.result }}"
+```
+
+Possible values: `success` | `failure` | `cancelled` | `skipped`.
+
+### 5. Matrix Strategy (Bonus)
 
 ```yaml
 strategy:
@@ -160,110 +392,42 @@ strategy:
     python-version: ['3.9', '3.10', '3.11']
 ```
 
-This creates **3 parallel jobs** - one for each Python version. GitHub Actions automatically runs them in parallel.
+This creates 3 runners per job automatically — one for each Python version. It's a second layer of parallelism, independent from job-level parallelism.
 
-### 2. Job Dependencies
-
-```yaml
-needs: lint
-```
-
-This makes the test job wait for the lint job to complete.
-
-### 3. Conditional Steps
-
-```yaml
-if: matrix.python-version == '3.11'
-```
-
-Only runs this step when Python version is 3.11 (avoids uploading 3 duplicate coverage reports).
-
-### 4. Working Directory
+### 6. Working Directory
 
 ```yaml
 working-directory: './GH_Actions/lab2'
 ```
 
-All commands in that step run from the lab2 folder, not the repository root.
+All `run:` commands in that step execute from the lab2 folder.
 
-### 5. Artifacts
-
-```yaml
-uses: actions/upload-artifact@v4
-with:
-  name: lab2-coverage-report
-  path: ./GH_Actions/lab2/coverage.xml
-```
-
-Saves files (like coverage reports) that you can download after the workflow runs.
-
-## 📊 Coverage Reporting
-
-The solution uses `pytest-cov` to generate coverage reports:
-
-```bash
-pytest test_string_utils.py -v --cov=string_utils --cov-report=term-missing
-```
-
-This shows:
-- Which lines of code are tested
-- Which lines are NOT tested
-- Overall coverage percentage
-
-Example output:
-```
----------- coverage: platform linux, python 3.11.0 -----------
-Name              Stmts   Miss  Cover   Missing
------------------------------------------------
-string_utils.py      25      0   100%
------------------------------------------------
-TOTAL                25      0   100%
-```
-
-## 🧪 Testing the Solution
-
-To test this workflow:
-
-1. **Copy** `GH_Actions/solutions/lab2-solution.yml` → `.github/workflows/lab2-solution.yml`
-2. **Commit and push** the workflow file to your repository
-3. **Check the Actions tab** on GitHub
-4. **View the workflow run** - you should see all 4 jobs
-5. **Check the summary** - all tests should pass ✅
-
-## 💡 What Students Should Learn
-
-From this solution, students learn:
-
-1. **Workflow structure** - jobs, steps, triggers
-2. **Matrix builds** - testing multiple versions in parallel
-3. **Job dependencies** - using `needs` to control execution order
-4. **Working directories** - organizing monorepo projects
-5. **Code quality** - linting and formatting
-6. **Test coverage** - measuring code quality
-7. **Artifacts** - saving and sharing workflow outputs
-8. **Parallel execution** - independent jobs run simultaneously
+---
 
 ## 🎯 Grading Rubric (Optional)
 
-If you want to grade student solutions:
-
 | Requirement | Points |
-|-------------|--------|
+|---|---|
 | Workflow runs on push | 10 |
 | Uses Ubuntu | 5 |
 | Sets up Python | 10 |
 | Installs dependencies | 10 |
 | Runs tests successfully | 15 |
-| **Bonus: Multiple Python versions** | +10 |
+| **Bonus: Sequential multi-job workflow** | +10 |
+| **Bonus: Parallel multi-job workflow** | +15 |
+| **Bonus: Summary/fan-in job** | +10 |
+| **Bonus: Multiple Python versions (matrix)** | +10 |
 | **Bonus: Code coverage** | +10 |
 | **Bonus: Push + PR triggers** | +5 |
 | **Bonus: Linting** | +10 |
-| **Bonus: Combined workflow** | +15 |
-| **Total** | 50 (+50 bonus) |
+| **Total** | 50 (+70 bonus) |
+
+---
 
 ## 🔗 Additional Resources
 
-- [GitHub Actions Matrix Builds](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+- [GitHub Actions — Creating dependent jobs](https://docs.github.com/en/actions/using-workflows/advanced-workflow-features#creating-dependent-jobs)
+- [GitHub Actions — Matrix builds](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+- [GitHub Actions — needs context](https://docs.github.com/en/actions/learn-github-actions/contexts#needs-context)
 - [pytest-cov Documentation](https://pytest-cov.readthedocs.io/)
 - [Flake8 Documentation](https://flake8.pycqa.org/)
-- [Black Code Formatter](https://black.readthedocs.io/)
