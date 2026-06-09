@@ -28,10 +28,10 @@ resource "aws_s3_bucket" "app_storage" {
   bucket = var.bucket_name
 
   tags = {
-    Name = var.bucket_name
+    Name        = var.bucket_name
     Environment = var.environment
-    Project = var.project_name
-    ManagedBy = "terraform"
+    Project     = var.project_name
+    ManagedBy   = "terraform"
   }
 }
 

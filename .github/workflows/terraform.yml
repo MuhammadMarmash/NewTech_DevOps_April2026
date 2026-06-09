@@ -7,7 +7,6 @@ on:
       - "GH_Actions/lab4/**"
   pull_request:
     branches: [main]
-    types: [opened, closed]
     paths:
       - "GH_Actions/lab4/**"
 
@@ -57,11 +56,11 @@ jobs:
         working-directory: ./GH_Actions/lab4/terraform
 
       - name: terraform apply
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan
         working-directory: ./GH_Actions/lab4/terraform
 
       - name: terraform output
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform output -json > terraform_output.json
         working-directory: ./GH_Actions/lab4/terraform
