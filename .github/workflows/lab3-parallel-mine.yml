@@ -3,8 +3,8 @@ name: lab3 tests - Parallel Mine
 on:
   push:
     branches: [main]
-    # paths:
-    #   - "GH_Actions/lab3/**"
+    paths:
+      - "GH_Actions/lab3/**"
 
 jobs:
   tests:
@@ -70,7 +70,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: security-reports-${{ matrix.os }}
+          name: security-report
           path: |
             ./GH_Actions/lab3/bandit_report.xml
 
