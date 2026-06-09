@@ -44,8 +44,12 @@ jobs:
         run: terraform validate
         working-directory: ./GH_Actions/lab4/terraform
 
+      - name: install checkov
+        run: pip install checkov
+
       - name: checkov scan
         run: checkov -d . --framework terraform
+        working-directory: ./GH_Actions/lab4/terraform
 
       - name: plan and save output
         run: terraform plan -out=tfplan
