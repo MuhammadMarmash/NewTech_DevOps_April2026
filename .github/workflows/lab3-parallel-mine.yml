@@ -1,6 +1,6 @@
 name: lab3 tests - Parallel Mine
 
-on:
+"on":
   push:
     branches: [main]
     # paths:
