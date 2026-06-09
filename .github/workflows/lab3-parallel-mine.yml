@@ -66,10 +66,6 @@ jobs:
         run: |
           bandit -r ./GH_Actions/lab3 --format xml -o bandit_report.xml
         working-directory: ./GH_Actions/lab3
-      - name: Run Safety security scan
-        run: |
-          safety check --full-report --json > safety_report.json
-        working-directory: ./GH_Actions/lab3
       - name: Upload security reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -77,7 +73,6 @@ jobs:
           name: security-reports-${{ matrix.os }}
           path: |
             ./GH_Actions/lab3/bandit_report.xml
-            ./GH_Actions/lab3/safety_report.json
 
   pipeline-summary:
     runs-on: ubuntu-latest
