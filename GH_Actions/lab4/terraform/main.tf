@@ -9,7 +9,7 @@ terraform {
   }
 
   # Partial backend configuration.
-  # Supply the bucket name at init time:
+  # Supply the bucket name at init  time:
   #   Local:  terraform init -backend-config="bucket=YOUR-STATE-BUCKET"
   #   CI:     terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}"
   backend "s3" {
