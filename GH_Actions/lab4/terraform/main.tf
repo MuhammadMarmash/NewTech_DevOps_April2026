@@ -52,6 +52,6 @@ resource "aws_s3_bucket_versioning" "app_storage" {
   bucket = aws_s3_bucket.app_storage.id
 
   versioning_configuration {
-    status = "Disabled"
+    status = "Enabled"
   }
 }
