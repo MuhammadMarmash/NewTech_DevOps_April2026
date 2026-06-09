@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if ([ -f requirements.txt ]; then pip install -r requirements.txt); fi
         working-directory: ./GH_Actions/lab3
       - name: Run ${{ matrix.test-type }} test
         run: |
@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.test-type }}-${{ matrix.os }}
-          path: ./GH_Actions/lab3/coverage.xml
+          path: ./GH_Actions/lab3/
 
   security-scan:
     runs-on: ubuntu-latest
@@ -68,6 +68,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: security-reports-${{ matrix.os }}
+          path: |
+            ./GH_Actions/lab3/bandit_report.xml
+            ./GH_Actions/lab3/safety_report.json
 
   pipeline-summary:
     runs-on: ubuntu-latest
