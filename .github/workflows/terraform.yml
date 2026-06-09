@@ -48,8 +48,8 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: "./GH_Actions/lab4/terraform"
-          output-format: "junitxml"
-          output-file: "checkov_report.xml"
+          output_format: "cli,junitxml"
+          output_file_path: "console,checkov_report.xml"
 
       - name: plan and save output
         run: terraform plan -out=tfplan
