@@ -25,6 +25,8 @@ provider "aws" {
 # ── S3 Bucket ──────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "app_storage" {
+  #checkov:skip=CKV_AWS_18:Access logging needs a dedicated log bucket — out of scope for a single lab bucket
+  #checkov:skip=CKV_AWS_144:Cross-region replication needs a second region/bucket/IAM role — out of scope for this lab
   bucket = var.bucket_name
 
   tags = {
@@ -83,6 +85,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "app_storage" {
 
     noncurrent_version_expiration {
       noncurrent_days = 90
+    }
+
+    # CKV_AWS_300 — clean up failed/incomplete multipart uploads.
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 }
